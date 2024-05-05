@@ -35,3 +35,11 @@ export const createRetriever = async (embeddings: Embeddings, collectionName: st
 
   return retriever
 }
+
+export const getVectorStore = async (embeddings: Embeddings, collectionName: string)=> {
+  const vectorStore = createVectorStore(embeddings, collectionName)
+  if (process.env.VECTOR_STORE === 'chroma') {
+    await vectorStore.ensureCollection()
+  }
+  return vectorStore
+}

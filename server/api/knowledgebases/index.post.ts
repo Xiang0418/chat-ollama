@@ -53,15 +53,17 @@ export default defineEventHandler(async (event) => {
   console.log(`Created knowledge base ${name}: ${affected.id} by ${currentUser ? currentUser.name : 'anonymous'}`)
 
   try {
-    await ingestDocument(uploadedFiles, `collection_${affected.id}`, affected.embedding!, event)
+    let ids = await ingestDocument(uploadedFiles, `collection_${affected.id}`, affected.embedding!, event)
+    let count = 0
     for (const uploadedFile of uploadedFiles) {
       const createdKnowledgeBaseFile = await prisma.knowledgeBaseFile.create({
         data: {
           url: uploadedFile.filename!,
-          knowledgeBaseId: affected.id
+          knowledgeBaseId: affected.id,
+          documentId: ids![count],
         }
       })
-
+      count++
       console.log("KnowledgeBaseFile with ID: ", createdKnowledgeBaseFile.id)
     }
 
@@ -69,8 +71,9 @@ export default defineEventHandler(async (event) => {
     for (const url of allUrls) {
       const createdKnowledgeBaseFile = await prisma.knowledgeBaseFile.create({
         data: {
-          url: url,
-          knowledgeBaseId: affected.id
+          url: url.url,
+          knowledgeBaseId: affected.id,
+          documentId: ids![count],
         }
       })
 

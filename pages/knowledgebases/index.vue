@@ -10,6 +10,7 @@ const modal = useModal()
 const confirm = useDialog('confirm')
 const toast = useToast()
 const currentSessionId = useStorage<number>('currentSessionId', 0)
+const knowBaseId = useStorage<number>('knowBaseId', -1)
 
 const { data, refresh } = await useFetch('/api/knowledgebases', {
   headers: {
@@ -35,6 +36,13 @@ async function onStartChat(data: KnowledgeBase) {
   currentSessionId.value = chatSessionInfo.id
   router.push('/chat')
 }
+
+async function onIndexedFiles(data: KnowledgeBase) {
+  console.log(data)
+  knowBaseId.value = data.id
+  router.push('/knowledgebasefiles')
+}
+
 
 const onDelete = async (row: KnowledgeBase) => {
   confirm(t("knowledgeBases.deleteConfirm", [`<b class="text-primary">${row.name}</b>`]), {
@@ -100,7 +108,7 @@ function onShowUpdate(data: KnowledgeBase) {
         <template #files-data="{ row }">
           <div class="inline-flex">
             <UPopover mode="hover" :popper="{ placement: 'right' }">
-              <UButton color="primary" variant="soft" :label="'' + row.files.length" />
+              <UButton color="primary" variant="soft" :label="'' + row.files.length" @click="onIndexedFiles(row)" />
               <template #panel>
                 <ul class="p-2 list-inside">
                   <li v-for="el, i in row.files" :key="el.id" class="list-disc list-inside my-1 p-1">

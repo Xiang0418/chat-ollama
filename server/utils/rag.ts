@@ -1,14 +1,14 @@
-import { Document } from "@langchain/core/documents"
-import { PDFLoader } from "langchain/document_loaders/fs/pdf"
-import { TextLoader } from "langchain/document_loaders/fs/text"
-import { JSONLoader } from "langchain/document_loaders/fs/json"
-import { DocxLoader } from "langchain/document_loaders/fs/docx"
-import { CSVLoader } from "langchain/document_loaders/fs/csv"
-import { compile } from "html-to-text"
-import { MultiPartData, H3Event } from 'h3'
-import { createRetriever } from '@/server/retriever'
-import type { PageParser } from '@/server/types'
-import { RecursiveUrlLoader, type RecursiveUrlLoaderOptions } from '@/server/utils/recursiveUrlLoader'
+import {Document} from "@langchain/core/documents"
+import {PDFLoader} from "langchain/document_loaders/fs/pdf"
+import {TextLoader} from "langchain/document_loaders/fs/text"
+import {JSONLoader} from "langchain/document_loaders/fs/json"
+import {DocxLoader} from "langchain/document_loaders/fs/docx"
+import {CSVLoader} from "langchain/document_loaders/fs/csv"
+import {compile} from "html-to-text"
+import {H3Event, MultiPartData} from 'h3'
+import {createRetriever, getVectorStore} from '@/server/retriever'
+import type {PageParser} from '@/server/types'
+import {RecursiveUrlLoader, type RecursiveUrlLoaderOptions} from '@/server/utils/recursiveUrlLoader'
 
 export const loadDocuments = async (file: MultiPartData) => {
   const Loaders = {
@@ -25,7 +25,7 @@ export const loadDocuments = async (file: MultiPartData) => {
   if (!Loaders[ext]) {
     throw new Error(`Unsupported file type: ${ext}`)
   }
-  const blob = new Blob([file.data], { type: file.type })
+  const blob = new Blob([file.data], {type: file.type})
   return new Loaders[ext](blob).load()
 }
 
@@ -57,14 +57,22 @@ export const loadURL = async (url: string, options: LoadUrlOptions) => {
       }
     }
   } else {
-    loaderOptions.extractor = compile({ wordwrap: 130 })
+    loaderOptions.extractor = compile({wordwrap: 130})
   }
 
   const loader = new RecursiveUrlLoader(url, loaderOptions)
-  const docs = await loader.load()
-
-  return docs
+  return await loader.load()
 }
+
+export const deleteDocuments = async (collectionName: string,
+                                      embedding: string,
+                                      docIds: string[], event: H3Event) => {
+  const embeddings = createEmbeddings(embedding, event)
+  let vectorStore = await getVectorStore(embeddings, collectionName)
+  await vectorStore.delete({ids: docIds, filter: ""})
+  console.log("deleted id")
+}
+
 
 export const ingestDocument = async (
   files: MultiPartData[],
@@ -83,9 +91,15 @@ export const ingestDocument = async (
   const embeddings = createEmbeddings(embedding, event)
   const retriever = await createRetriever(embeddings, collectionName)
 
-  await retriever.addDocuments(docs)
-
+  let ids = await retriever.addDocuments(docs)
+  console.log(`docs ids: ${ids}`)
   console.log(`${docs.length} documents added to collection ${collectionName}.`)
+  return ids
+}
+
+type URLDocument = {
+  url: string,
+  documentId: string,
 }
 
 export const ingestURLs = async (
@@ -96,10 +110,10 @@ export const ingestURLs = async (
 ) => {
   const docs: Document[] = []
   const entryAndChildUrls = new Set<string>()
-  const { pageParser, maxDepth, excludeGlobs } = await parseKnowledgeBaseFormRequest(event)
+  const {pageParser, maxDepth, excludeGlobs} = await parseKnowledgeBaseFormRequest(event)
 
   for (const url of urls) {
-    const loadedDocs = await loadURL(url, { pageParser, maxDepth, excludeGlobs })
+    const loadedDocs = await loadURL(url, {pageParser, maxDepth, excludeGlobs})
     loadedDocs.forEach(doc => {
       docs.push(doc)
       entryAndChildUrls.add(doc.metadata.source.replace(/\/$/, ''))
@@ -109,11 +123,14 @@ export const ingestURLs = async (
   const embeddings = createEmbeddings(embedding, event)
   const retriever = await createRetriever(embeddings, collectionName)
 
-  await retriever.addDocuments(docs)
+  let ids = await retriever.addDocuments(docs)
 
   console.log(`${docs.length} URLs added to collection ${collectionName}.`)
 
   console.log('All URLs:', entryAndChildUrls)
+  let results: URLDocument[] = urls.map((key, index) => {
+    return {url: key, documentId: ids![index]}
+  })
 
-  return entryAndChildUrls
+  return results
 }

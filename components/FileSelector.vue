@@ -23,6 +23,10 @@ function onRemove(file: File) {
   <div class="flex items-center">
     <FileButton v-model="files" :disabled :color multiple :accept>{{ t("global.selectFiles") }}</FileButton>
     <FileButton v-model="files" :disabled :color directory :accept class="mx-2">{{ t("global.selectFolder") }}</FileButton>
+    <FileButton v-model="files" :disabled :color directory obsidian :accept class="mx-2"
+    >Select Obsidian Folder</FileButton
+    >
+
     <span class="text-sm text-muted" v-show="files.length > 0">{{ t("knowledgeBases.files", [files.length]) }}</span>
   </div>
   <ul class="my-2 text-sm text-primary-400/80 max-h-40 overflow-auto">

@@ -1,9 +1,13 @@
 import { type KnowledgeBase } from "@prisma/client"
 import prisma from "@/server/utils/prisma"
 
+interface KnowledgeBaseWithFiles extends KnowledgeBase {
+  files: File[];
+}
+
 const listKnowledgeBase = async (
   id?: string
-): Promise<KnowledgeBase | null> => {
+): Promise<KnowledgeBase| KnowledgeBaseWithFiles | null> => {
   try {
     let knowledgeBase = null
 
@@ -12,6 +16,9 @@ const listKnowledgeBase = async (
         where: {
           id: parseInt(id),
         },
+        include: {
+          files: true
+        }
       })
     }
 

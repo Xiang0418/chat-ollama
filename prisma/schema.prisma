@@ -45,6 +45,7 @@ model KnowledgeBaseFile {
   url             String
   knowledgeBase   KnowledgeBase @relation("Files", fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
   knowledgeBaseId Int
+  documentId      String        @default("")
 }
 
 model Instruction {

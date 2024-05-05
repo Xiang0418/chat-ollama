@@ -6,6 +6,7 @@ const props = defineProps<{
   multiple?: boolean
   directory?: boolean
   disabled?: boolean
+  obsidian?:boolean
 }>()
 
 const emits = defineEmits<{
@@ -22,7 +23,7 @@ function onFileChange(e: Event) {
   const files = [...(e.target as any).files] as File[]
   if (files.length > 0) {
     const validFiles = (props.directory && exts.value.length > 0
-      ? files.filter(it => exts.value.some(ext => it.name.toLowerCase().endsWith(ext)))
+      ? files.filter(it => exts.value.some(ext => it.name.toLowerCase().endsWith(ext)) && (!props.obsidian || !it.webkitRelativePath.includes('/.obsidian')))
       : files)
 
     const arr = validFiles.filter(v => !selected.value.some(el => el.name === v.name && el.size === v.size && el.lastModified === v.lastModified))
