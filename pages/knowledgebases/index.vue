@@ -2,6 +2,7 @@
 import { useStorage } from '@vueuse/core'
 import { type KnowledgeBase } from '@prisma/client'
 import { KnowledgeBaseForm } from '#components'
+import {useCreateChatSession} from "~/composables/chat";
 
 const { t } = useI18n()
 const { token } = useAuth()
